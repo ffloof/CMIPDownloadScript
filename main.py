@@ -19,15 +19,25 @@ print(searchurl)
 
 # Have to do a bit of manipulation to reformat it into the format that gets us .json metadata
 
-params = json.loads(searchurl.split("activeFacets=")[1].replace("%22", "\"").replace("%7B", "{").replace("%3A", ":").replace("%2C", ",").replace("%7D", "}"))
+params = json.loads(searchurl.split("activeFacets=")[1].replace("%22", "\"").replace("%7B", "{").replace("%3A", ":").replace("%2C", ",").replace("%7D", "}").replace("%5B", "[").replace("%5D", "]"))
 
 templateurl = "https://aims2.llnl.gov/metagrid-backend/proxy/search?project=CMIP6&offset=0&limit=10000&type=Dataset&format=application%2Fsolr%2Bjson&facets=activity_id%2C+data_node%2C+source_id%2C+institution_id%2C+source_type%2C+experiment_id%2C+sub_experiment_id%2C+nominal_resolution%2C+variant_label%2C+grid_label%2C+table_id%2C+frequency%2C+realm%2C+variable_id%2C+cf_standard_name&latest=true&query=*"  #&experiment_id=1pctCO2-rad&variable_id=cVeg
 
 
 
 templateaddon = ""
+print("===================================\nRequest Details")
 for (key, value) in params.items():
-	templateaddon += "&" + key + "=" + value
+	print(key, ":", value)
+	if type(value) is list:
+		templateaddon += "&" + key + "=" + ",".join(value)
+	elif type(value) is str:
+		templateaddon += "&" + key + "=" + value
+	else:
+		print("Strange parameter", type(value), value)
+
+print("===================================")
+
 
 searchurl = templateurl + quote(templateaddon, safe="&=")
 #print(searchurl)
@@ -54,8 +64,9 @@ with urllib.request.urlopen(searchurl) as query:
 				# Each file has several download urls for different protocols ie HTTP, OpenDAP, Globus, we will only use HTTP
 				for download_url in file_metadata["url"]:
 					if download_url.startswith("http"):
-						download_urls.append(download_url.split('|')[0])
-						# TODO: add flag to filter files meta with .html
+						if not "opendap-html" in download_url:
+							#print(download_url)
+							download_urls.append(download_url.split('|')[0])
 
 
 # Folder to download to, if it doesn't exist create it
